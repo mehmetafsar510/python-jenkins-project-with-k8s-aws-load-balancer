@@ -414,12 +414,30 @@ pipeline{
             }
         }
 
+        stage('Aws-Certificate'){
+            agent any
+            steps{
+                withAWS(credentials: 'mycredentials', region: 'us-east-1') {
+                    
+                    sh '''
+                        Acm=$(aws acm list-certificates --query CertificateSummaryList[].[CertificateArn,DomainName] --output text | grep $FQDN) || true
+                        if [ "$Acm" == '' ]
+                        then
+                            aws acm request-certificate --domain-name $FQDN --validation-method DNS --query CertificateArn --region ${AWS_REGION}
+                        
+                        fi
+                    '''
+                        
+                }                  
+            }
+        }
+
         stage('ssl-tls-record'){
             agent any
             steps{
                 withAWS(credentials: 'mycredentials', region: 'us-east-1') {
                     script {
-                        env.SSL_CERT_ARN = sh(script:'aws acm request-certificate --domain-name $FQDN --validation-method DNS --query CertificateArn --region ${AWS_REGION} --output text  | sed "s/\\s*None\\s*//g"', returnStdout:true).trim()
+                        env.SSL_CERT_ARN = sh(script:'aws acm list-certificates --query CertificateSummaryList[].[CertificateArn,DomainName]   --output text | grep $FQDN | cut -f1', returnStdout:true).trim()
                         env.SSL_CERT_JSON = sh(script:"aws acm describe-certificate --certificate-arn $SSL_CERT_ARN --query Certificate.DomainValidationOptions --region ${AWS_REGION} --output text | cut -d/ -f3", returnStdout:true).trim()
                         env.SSL_CERT_NAME = sh(script:'echo $SSL_CERT_JSON | jq -r ".[] | select(.DomainName == \"$FQDN\").ResourceRecord.Name"', returnStdout:true).trim()
                         env.SSL_CERT_VALUE = sh(script:'echo $SSL_CERT_JSON | jq -r ".[] | select(.DomainName == \"$FQDN\").ResourceRecord.Value"', returnStdout:true).trim()   
