@@ -21,9 +21,9 @@ spec:
     http:
       paths:
       - path: /
-            backend:
-              serviceName: search-flask
-              servicePort: 80
+        backend:
+            serviceName: search-flask
+            servicePort: 80
       - path: /add
         backend:
             serviceName: update
