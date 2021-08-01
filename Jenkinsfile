@@ -418,7 +418,7 @@ pipeline{
             agent any
             steps{
                 withAWS(credentials: 'mycredentials', region: 'us-east-1') {
-                    
+
                     sh '''
                         Acm=$(aws acm list-certificates --query CertificateSummaryList[].[CertificateArn,DomainName] --output text | grep $FQDN) || true
                         if [ "$Acm" == '' ]
@@ -432,7 +432,7 @@ pipeline{
             }
         }
 
-        stage('ssl-tls-record'){
+        stage('ssl-tls-record-validate'){
             agent any
             steps{
                 withAWS(credentials: 'mycredentials', region: 'us-east-1') {
