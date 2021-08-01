@@ -28,7 +28,19 @@ spec:
             backend:
                 serviceName: ssl-redirect
                 servicePort: use-annotation         
-          - path: /?(.*)
+          - path: /
             backend:
-              serviceName: service-app
-              servicePort: 80
+                serviceName: search-flask
+                servicePort: 80
+          - path: /add
+            backend:
+                serviceName: update
+                servicePort: 80
+          - path: /delete
+            backend:
+                serviceName: update
+                servicePort: 80
+          - path: /update
+            backend:
+                serviceName: update
+                servicePort: 80

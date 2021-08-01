@@ -7,9 +7,7 @@ pipeline{
         MYSQL_DATABASE_PORT = 3306
         PATH="/usr/local/bin/:${env.PATH}"
         AWS_ACCOUNT_ID=sh(script:'export PATH="$PATH:/usr/local/bin" && aws sts get-caller-identity --query Account --output text', returnStdout:true).trim()
-        ECR_REGISTRY = "646075469151.dkr.ecr.us-east-1.amazonaws.com"
-        APP_REPO_NAME= "phonebook/app"
-        CFN_KEYPAIR="the-doctor"
+        APP_REPO_NAME = "mehmetafsar510"
         AWS_REGION = "us-east-1"
         CLUSTER_NAME = "mehmet-cluster"
         FQDN = "clarusshop.mehmetafsar.com"
@@ -33,6 +31,7 @@ pipeline{
                   sudo mv ./kubectl /usr/local/bin
                   sudo mv /tmp/eksctl /usr/local/bin
                   ./get_helm.sh
+                  sudo yum install jq -y
                 """
               }
             }
@@ -126,49 +125,38 @@ pipeline{
                 }
             }
         }
-
-        stage('creating ECR Repository'){
-            agent any
-            steps{
-                echo 'creating ECR Repository'
-                sh '''
-                    RepoArn=$(aws ecr describe-repositories | grep ${APP_REPO_NAME} |cut -d '"' -f 4| head -n 1 )  || true
-                    if [ "$RepoArn" == '' ]
-                    then
-                        aws ecr create-repository \
-                          --repository-name ${APP_REPO_NAME} \
-                          --image-scanning-configuration scanOnPush=false \
-                          --image-tag-mutability MUTABLE \
-                          --region ${AWS_REGION}
-                        
-                    fi
-                '''
-            }
-        } 
-
-        stage('build'){
-            agent any
-            steps{
-                sh "docker build -t ${APP_REPO_NAME} ."
-                sh 'docker tag ${APP_REPO_NAME} "$ECR_REGISTRY/$APP_REPO_NAME:latest"'
-            }
-        }
-
-        stage('push'){
-            agent any
-            steps{
-                sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin "$ECR_REGISTRY"'
-                sh 'docker push "$ECR_REGISTRY/$APP_REPO_NAME:latest"'
-            }
-        }
-
-        stage('compose'){
-            agent any
-            steps{
-                sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin "$ECR_REGISTRY"'
-                sh "docker-compose up -d"
-            }
-        }
+        stage('Build Docker Result Image') {
+			steps {
+				sh 'docker build -t phonebook:latest ${GIT_URL}#:result'
+				sh 'docker tag phonebook:latest $APP_REPO_NAME/phonebook-result:latest'
+				sh 'docker tag phonebook:latest $APP_REPO_NAME/phonebook-result:${BUILD_ID}'
+				sh 'docker images'
+			}
+		}
+        stage('Build Docker Update Image') {
+			steps {
+				sh 'docker build -t phonebook:latest ${GIT_URL}#:kubernetes'
+				sh 'docker tag phonebook:latest $APP_REPO_NAME/phonebook-update:latest'
+				sh 'docker tag phonebook:latest $APP_REPO_NAME/phonebook-update:${BUILD_ID}'
+				sh 'docker images'
+			}
+		}
+		stage('Push Result Image to Docker Hub') {
+			steps {
+				withDockerRegistry([ credentialsId: "dockerhub_id", url: "" ]) {
+				sh 'docker push $APP_REPO_NAME/phonebook-update:latest'
+				sh 'docker push $APP_REPO_NAME/phonebook-update:${BUILD_ID}'
+				}
+			}
+		}
+        stage('Push Update Image to Docker Hub') {
+			steps {
+				withDockerRegistry([ credentialsId: "dockerhub_id", url: "" ]) {
+				sh 'docker push $APP_REPO_NAME/phonebook-result:latest'
+				sh 'docker push $APP_REPO_NAME/phonebook-result:${BUILD_ID}'
+				}
+			}
+		}
 
         stage('get-keypair'){
             agent any
@@ -287,33 +275,12 @@ pipeline{
             }
         }
 
-        stage('create-ebs'){
-            agent any
-            steps{
-                sh '''
-                    VolumeId=$(aws ec2 describe-volumes --filters Name=tag:Name,Values="k8s-python-mysql2" | grep VolumeId |cut -d '"' -f 4| head -n 1)  || true
-                    if [ "$VolumeId" == '' ]
-                    then
-                        aws ec2 create-volume \
-                            --availability-zone us-east-1c\
-                            --volume-type gp2 \
-                            --size 10 \
-                            --tag-specifications 'ResourceType=volume,Tags=[{Key=Name,Value=k8s-python-mysql2}]'
-                        
-                    fi
-                '''
-            }
-        }
-
         stage('apply-k8s'){
             agent any
             steps{
                 withAWS(credentials: 'mycredentials', region: 'us-east-1') {
-                    script {
-                        env.EBS_VOLUME_ID = sh(script:"aws ec2 describe-volumes --filters Name=tag:Name,Values='k8s-python-mysql2' | grep VolumeId |cut -d '\"' -f 4| head -n 1", returnStdout: true).trim()
-                    }
-                    sh "sed -i 's/{{EBS_VOLUME_ID}}/$EBS_VOLUME_ID/g' k8s/deployment-db.yaml"
-                    sh "sed -i 's|{{ECR_REGISTRY}}|$ECR_REGISTRY/$APP_REPO_NAME:latest|g' k8s/deployment-app.yaml"
+                    sh "sed -i 's|{{REGISTRY}}|$APP_REPO_NAME/phonebook-update|g' kubernetes/update-deployment.yaml"
+                    sh "sed -i 's|{{REGISTRY}}|$APP_REPO_NAME/phonebook-result|g' result/result-deployment.yaml"
                     sh '''
                         NameSpaces=$(kubectl get namespaces | grep -i $NM_SP) || true
                         if [ "$NameSpaces" == '' ]
@@ -324,13 +291,39 @@ pipeline{
                             kubectl create namespace $NM_SP
                         fi
                     '''
-                    sh "sed -i 's|{{ns}}|$NM_SP|g' k8s/configmap-app.yaml"
-                    sh "kubectl apply --namespace $NM_SP -f  k8s"
+                    sh "sed -i 's|{{ns}}|$NM_SP|g' kubernetes/servers-configmap.yaml"
+                    sh "kubectl apply --namespace $NM_SP -f  kubernetes"
+                    sh "kubectl apply --namespace $NM_SP -f  result"
                     sh "kubectl apply --namespace $NM_SP -f  auto-scaling"
-                    sh "kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.35.0/deploy/static/provider/aws/deploy.yaml"
+                    sh "curl -o iam_policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.2.0/docs/install/iam_policy.json"
+                    sh """
+                    aws iam create-policy \
+                        --policy-name AWSLoadBalancerControllerIAMPolicy \
+                        --policy-document file://iam_policy.json
+                    """
+                    sh """
+                    eksctl create iamserviceaccount \
+                      --cluster=${CLUSTER_NAME} \
+                      --namespace=kube-system \
+                      --name=aws-load-balancer-controller \
+                      --attach-policy-arn=arn:aws:iam::${AWS_ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy \
+                      --override-existing-serviceaccounts \
+                      --approve
+                    """
+                    sh 'kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=master"'
+                    sh "helm repo add eks https://aws.github.io/eks-charts"
+                    sh "helm repo update"
+                    sh """
+                    helm upgrade -i aws-load-balancer-controller eks/aws-load-balancer-controller \
+                      --set clusterName=${CLUSTER_NAME} \
+                      --set serviceAccount.create=false \
+                      --set serviceAccount.name=aws-load-balancer-controller \
+                      -n kube-system
+                    """
+
                     sleep(5)
-                    sh "sed -i 's|{{FQDN}}|$FQDN|g' ingress-service.yaml"
-                    sh "kubectl apply --validate=false --namespace $NM_SP -f ingress-service.yaml"
+                    sh "sed -i 's|{{FQDN}}|$FQDN|g' ingress.yaml"
+                    sh "kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml"
                     sleep(10)
                 }                  
             }
@@ -344,7 +337,7 @@ pipeline{
                         env.ELB_DNS = sh(script:'aws elbv2 describe-load-balancers --query LoadBalancers[].DNSName --output text | sed "s/\\s*None\\s*//g"', returnStdout:true).trim()
                         env.ZONE_ID = sh(script:"aws route53 list-hosted-zones-by-name --dns-name $DOMAIN_NAME --query HostedZones[].Id --output text | cut -d/ -f3", returnStdout:true).trim()  
                     }
-                    sh "sed -i 's|{{DNS}}|$ELB_DNS|g' deleterecord.json"
+                    sh "sed -i 's|{{DNS}}|dualstack.$ELB_DNS|g' deleterecord.json"
                     sh "sed -i 's|{{FQDN}}|$FQDN|g' deleterecord.json"
                     sh '''
                         RecordSet=$(aws route53 list-resource-record-sets   --hosted-zone-id $ZONE_ID   --query ResourceRecordSets[] | grep -i $FQDN) || true
@@ -367,7 +360,7 @@ pipeline{
                         env.ELB_DNS = sh(script:'aws elbv2 describe-load-balancers --query LoadBalancers[].DNSName --output text | sed "s/\\s*None\\s*//g"', returnStdout:true).trim()
                         env.ZONE_ID = sh(script:"aws route53 list-hosted-zones-by-name --dns-name $DOMAIN_NAME --query HostedZones[].Id --output text | cut -d/ -f3", returnStdout:true).trim()   
                     }
-                    sh "sed -i 's|{{DNS}}|$ELB_DNS|g' dnsrecord.json"
+                    sh "sed -i 's|{{DNS}}|dualstack.$ELB_DNS|g' dnsrecord.json"
                     sh "sed -i 's|{{FQDN}}|$FQDN|g' dnsrecord.json"
                     sh "aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch file://dnsrecord.json"
                     
@@ -379,53 +372,22 @@ pipeline{
             agent any
             steps{
                 withAWS(credentials: 'mycredentials', region: 'us-east-1') {
-                    sh "kubectl apply --validate=false -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.11/deploy/manifests/00-crds.yaml"
-                    sh "helm repo add jetstack https://charts.jetstack.io"
-                    sh "helm repo update"
-                    sh '''
-                        NameSpace=$(kubectl get namespaces | grep -i cert-manager) || true
-                        if [ "$NameSpace" == '' ]
-                        then
-                            kubectl create namespace cert-manager
-                        else
-                            helm delete cert-manager --namespace cert-manager
-                            kubectl delete namespace cert-manager
-                            kubectl create namespace cert-manager
-                        fi
-                    '''
-                    sh """
-                      helm install cert-manager jetstack/cert-manager \
-                      --namespace cert-manager \
-                      --version v0.11.1 \
-                      --set webhook.enabled=false \
-                      --set installCRDs=true
-                    """
-                    sh """
-                      sudo openssl req -x509 -nodes -days 90 -newkey rsa:2048 \
-                          -out clarusway-cert.crt \
-                          -keyout clarusway-cert.key \
-                          -subj "/CN=$FQDN/O=$SEC_NAME"
-                    """
-                    sh '''
-                        SecretNm=$(kubectl get secrets | grep -i $SEC_NAME) || true
-                        if [ "$SecretNm" == '' ]
-                        then
-                            kubectl create secret --namespace $NM_SP  tls $SEC_NAME \
-                                --key clarusway-cert.key \
-                                --cert clarusway-cert.crt
-                        else
-                            kubectl delete secret --namespace $NM_SP $SEC_NAME
-                            kubectl create secret --namespace $NM_SP tls $SEC_NAME \
-                                --key clarusway-cert.key \
-                                --cert clarusway-cert.crt
-                        fi
-                    '''
+                    script {
+                        env.SSL_CERT_ARN = sh(script:'aws acm request-certificate --domain-name $FQDN --validation-method DNS --query CertificateArn --region ${AWS_REGION} --output text  | sed "s/\\s*None\\s*//g"', returnStdout:true).trim()
+                        env.SSL_CERT_JSON = sh(script:"aws acm describe-certificate --certificate-arn $SSL_CERT_ARN --query Certificate.DomainValidationOptions --region ${AWS_REGION} --output text | cut -d/ -f3", returnStdout:true).trim()
+                        env.SSL_CERT_NAME = sh(script:'echo $SSL_CERT_JSON | jq -r ".[] | select(.DomainName == \"$FQDN\").ResourceRecord.Name"', returnStdout:true).trim()
+                        env.SSL_CERT_VALUE = sh(script:'echo $SSL_CERT_JSON | jq -r ".[] | select(.DomainName == \"$FQDN\").ResourceRecord.Value"', returnStdout:true).trim()   
+                    }
+
+                    sh "sed -i 's|{{SSL_CERT_NAME}}|$SSL_CERT_NAME|g' certificate.json"
+                    sh "sed -i 's|{{SSL_CERT_VALUE}}|$SSL_CERT_VALUE|g' certificate.json"
+                    sh "aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch file://certificate.json"
+                    
                     sleep(5)
-                    sh "sudo mv -f ingress-service-https.yaml ingress-service.yaml" 
-                    sh "kubectl apply --namespace $NM_SP -f ssl-tls-cluster-issuer.yaml"
-                    sh "sed -i 's|{{FQDN}}|$FQDN|g' ingress-service.yaml"
-                    sh "sed -i 's|{{SEC_NAME}}|$SEC_NAME|g' ingress-service.yaml"
-                    sh "kubectl apply --namespace $NM_SP -f ingress-service.yaml"              
+                    sh "sudo mv -f ingress-https.yaml ingress.yaml" 
+                    sh "sed -i 's|{{FQDN}}|$FQDN|g' ingress.yaml"
+                    sh "sed -i 's|{{ARN}}|$SSL_CERT_ARN|g' ingress.yaml"
+                    sh "kubectl apply --namespace $NM_SP -f ingress.yaml"              
                 }                  
             }
         }
@@ -438,7 +400,6 @@ pipeline{
         }
         failure {
             sh "rm -rf '${WORKSPACE}/.env'"
-            sh "eksctl delete cluster ${CLUSTER_NAME}"
             sh """
             aws ec2 detach-volume \
               --volume-id ${EBS_VOLUME_ID} \
@@ -456,10 +417,6 @@ pipeline{
               --delete-automated-backups
             """
             sh """
-            aws ec2 delete-volume \
-              --volume-id ${EBS_VOLUME_ID} \
-            """
-            sh """
             aws ec2 delete-key-pair \
               --key-name ${CFN_KEYPAIR}.pem
             """
@@ -467,7 +424,6 @@ pipeline{
             sh "rm -rf '${WORKSPACE}/${CFN_KEYPAIR}.pem'"
             sh "eksctl delete cluster ${CLUSTER_NAME}"
             sh "docker rm -f '\$(docker ps -a -q)'"
-            sh "kubectl delete -f k8s"
         }
         success {
             echo "You are Greattt...You can visit https://$FQDN"
