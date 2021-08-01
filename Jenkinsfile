@@ -6,6 +6,8 @@ pipeline{
         MYSQL_DATABASE_DB = "phonebook"
         MYSQL_DATABASE_PORT = 3306
         PATH="/usr/local/bin/:${env.PATH}"
+        ECR_REGISTRY = "646075469151.dkr.ecr.us-east-1.amazonaws.com"
+        APP_REPO_NAME= "phonebook/app"
         AWS_ACCOUNT_ID=sh(script:'export PATH="$PATH:/usr/local/bin" && aws sts get-caller-identity --query Account --output text', returnStdout:true).trim()
         APP_REPO_NAME = "mehmetafsar510"
         AWS_REGION = "us-east-1"
@@ -125,6 +127,61 @@ pipeline{
                 }
             }
         }
+
+        stage('creating .env for docker-compose'){
+            agent any
+            steps{
+                script {
+                    echo 'creating .env for docker-compose'
+                    sh "cd ${WORKSPACE}"
+                    writeFile file: '.env', text: "ECR_REGISTRY=${ECR_REGISTRY}\nAPP_REPO_NAME=${APP_REPO_NAME}:latest"
+                }
+            }
+        }
+
+        stage('creating ECR Repository'){
+            agent any
+            steps{
+                echo 'creating ECR Repository'
+                sh '''
+                    RepoArn=$(aws ecr describe-repositories | grep ${APP_REPO_NAME} |cut -d '"' -f 4| head -n 1 )  || true
+                    if [ "$RepoArn" == '' ]
+                    then
+                        aws ecr create-repository \
+                          --repository-name ${APP_REPO_NAME} \
+                          --image-scanning-configuration scanOnPush=false \
+                          --image-tag-mutability MUTABLE \
+                          --region ${AWS_REGION}
+                        
+                    fi
+                '''
+            }
+        } 
+
+        stage('build'){
+            agent any
+            steps{
+                sh "docker build -t ${APP_REPO_NAME} ."
+                sh 'docker tag ${APP_REPO_NAME} "$ECR_REGISTRY/$APP_REPO_NAME:latest"'
+            }
+        }
+
+        stage('push'){
+            agent any
+            steps{
+                sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin "$ECR_REGISTRY"'
+                sh 'docker push "$ECR_REGISTRY/$APP_REPO_NAME:latest"'
+            }
+        }
+
+        stage('compose'){
+            agent any
+            steps{
+                sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin "$ECR_REGISTRY"'
+                sh "docker-compose up -d"
+            }
+        }
+        
         stage('Build Docker Result Image') {
 			steps {
 				sh 'docker build -t phonebook:latest ${GIT_URL}#:result'
