@@ -343,20 +343,34 @@ pipeline{
                     sh "kubectl apply --namespace $NM_SP -f  auto-scaling"
                     sh "kubectl apply -f  components.yaml"
                     sh "curl -o iam_policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.2.0/docs/install/iam_policy.json"
-                    sh """
-                    aws iam create-policy \
-                        --policy-name AWSLoadBalancerControllerIAMPolicy \
-                        --policy-document file://iam_policy.json
-                    """
-                    sh """
-                    eksctl create iamserviceaccount \
-                      --cluster=${CLUSTER_NAME} \
-                      --namespace=kube-system \
-                      --name=aws-load-balancer-controller \
-                      --attach-policy-arn=arn:aws:iam::${AWS_ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy \
-                      --override-existing-serviceaccounts \
-                      --approve
-                    """
+                    sh '''
+                        policy=$(aws iam list-policies | grep -i AWSLoadBalancerControllerIAMPolicy)  || true
+                        if [ "$policy" == '' ]
+                        then
+                            aws iam create-policy \
+                                --policy-name AWSLoadBalancerControllerIAMPolicy \
+                                --policy-document file://iam_policy.json
+                        else
+                            echo "AWSLoadBalancerControllerIAMPolicy has already created..."
+
+                        fi
+                    '''
+                    sh '''
+                        serviceaccount=$(eksctl get iamserviceaccount --cluster ${CLUSTER_NAME} | grep -i aws-load-balancer-controller)  || true
+                        if [ "$serviceaccount" == '' ]
+                        then
+                            eksctl create iamserviceaccount \
+                              --cluster=${CLUSTER_NAME} \
+                              --namespace=kube-system \
+                              --name=aws-load-balancer-controller \
+                              --attach-policy-arn=arn:aws:iam::${AWS_ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy \
+                              --override-existing-serviceaccounts \
+                              --approve
+                        else
+                            echo "aws-load-balancer-controller has already created..."
+
+                        fi
+                    '''
                     sh 'kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=master"'
                     sh "helm repo add eks https://aws.github.io/eks-charts"
                     sh "helm repo update"
