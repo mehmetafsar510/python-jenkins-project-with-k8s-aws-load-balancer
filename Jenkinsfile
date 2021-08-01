@@ -128,17 +128,6 @@ pipeline{
             }
         }
 
-        stage('creating .env for docker-compose'){
-            agent any
-            steps{
-                script {
-                    echo 'creating .env for docker-compose'
-                    sh "cd ${WORKSPACE}"
-                    writeFile file: '.env', text: "ECR_REGISTRY=${ECR_REGISTRY}\nAPP_REPO_NAME=${APP_REPO}:latest"
-                }
-            }
-        }
-
         stage('creating ECR Repository'){
             agent any
             steps{
