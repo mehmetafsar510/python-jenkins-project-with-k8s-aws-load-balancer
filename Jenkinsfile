@@ -383,7 +383,6 @@ pipeline{
                     """
 
                     sleep(5)
-                    sh "sed -i 's|{{FQDN}}|$FQDN|g' ingress.yaml"
                     sh "kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml"
                     sleep(10)
                 }                  
