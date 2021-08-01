@@ -15,7 +15,7 @@ services:
             - clarusnet
             
     app:
-        image: "${ECR_REGISTRY}/${APP_REPO_NAME}"
+        image: "${ECR_REGISTRY}/${APP_REPO}"
         restart: always
         environment:
             MYSQL_DATABASE_HOST: database
