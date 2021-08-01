@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata: 
     name: servers-configmap
 data: 
-    MYSQL_DATABASE_HOST: mysql-service
+    MYSQL_DATABASE_HOST: mysql-service.{{ns}}
     MYSQL_USER: clarusway
     MYSQL_DATABASE: phonebook
 

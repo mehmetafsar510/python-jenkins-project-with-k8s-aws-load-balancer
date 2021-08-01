@@ -337,6 +337,7 @@ pipeline{
                             kubectl create namespace $NM_SP
                         fi
                     '''
+                    sh "sed -i 's|{{ns}}|$NM_SP|g' kubernetes/servers-configmap.yaml"
                     sh "kubectl apply --namespace $NM_SP -f  result"
                     sh "kubectl apply --namespace $NM_SP -f  kubernetes"
                     sh "kubectl apply --namespace $NM_SP -f  auto-scaling"
