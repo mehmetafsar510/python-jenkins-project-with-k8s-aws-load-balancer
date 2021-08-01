@@ -32,15 +32,7 @@ spec:
             backend:
                 serviceName: search-flask
                 servicePort: 80
-          - path: /add
-            backend:
-                serviceName: update
-                servicePort: 80
-          - path: /delete
-            backend:
-                serviceName: update
-                servicePort: 80
-          - path: /update
+          - path: /result
             backend:
                 serviceName: update
                 servicePort: 80
