@@ -7,7 +7,7 @@ pipeline{
         MYSQL_DATABASE_PORT = 3306
         PATH="/usr/local/bin/:${env.PATH}"
         ECR_REGISTRY = "646075469151.dkr.ecr.us-east-1.amazonaws.com"
-        APP_REPO_NAME= "phonebook/app"
+        APP_REPO = "phonebook/app"
         AWS_ACCOUNT_ID=sh(script:'export PATH="$PATH:/usr/local/bin" && aws sts get-caller-identity --query Account --output text', returnStdout:true).trim()
         APP_REPO_NAME = "mehmetafsar510"
         AWS_REGION = "us-east-1"
@@ -123,7 +123,7 @@ pipeline{
                 script {
                     echo 'creating .env for docker-compose'
                     sh "cd ${WORKSPACE}"
-                    writeFile file: '.env', text: "ECR_REGISTRY=${ECR_REGISTRY}\nAPP_REPO_NAME=${APP_REPO_NAME}:latest"
+                    writeFile file: '.env', text: "ECR_REGISTRY=${ECR_REGISTRY}\nAPP_REPO_NAME=${APP_REPO}:latest"
                 }
             }
         }
@@ -134,7 +134,7 @@ pipeline{
                 script {
                     echo 'creating .env for docker-compose'
                     sh "cd ${WORKSPACE}"
-                    writeFile file: '.env', text: "ECR_REGISTRY=${ECR_REGISTRY}\nAPP_REPO_NAME=${APP_REPO_NAME}:latest"
+                    writeFile file: '.env', text: "ECR_REGISTRY=${ECR_REGISTRY}\nAPP_REPO_NAME=${APP_REPO}:latest"
                 }
             }
         }
@@ -144,11 +144,11 @@ pipeline{
             steps{
                 echo 'creating ECR Repository'
                 sh '''
-                    RepoArn=$(aws ecr describe-repositories | grep ${APP_REPO_NAME} |cut -d '"' -f 4| head -n 1 )  || true
+                    RepoArn=$(aws ecr describe-repositories | grep ${APP_REPO} |cut -d '"' -f 4| head -n 1 )  || true
                     if [ "$RepoArn" == '' ]
                     then
                         aws ecr create-repository \
-                          --repository-name ${APP_REPO_NAME} \
+                          --repository-name ${APP_REPO} \
                           --image-scanning-configuration scanOnPush=false \
                           --image-tag-mutability MUTABLE \
                           --region ${AWS_REGION}
@@ -161,8 +161,8 @@ pipeline{
         stage('build'){
             agent any
             steps{
-                sh "docker build -t ${APP_REPO_NAME} ."
-                sh 'docker tag ${APP_REPO_NAME} "$ECR_REGISTRY/$APP_REPO_NAME:latest"'
+                sh "docker build -t ${APP_REPO} ."
+                sh 'docker tag ${APP_REPO} "$ECR_REGISTRY/$APP_REPO:latest"'
             }
         }
 
@@ -170,7 +170,7 @@ pipeline{
             agent any
             steps{
                 sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin "$ECR_REGISTRY"'
-                sh 'docker push "$ECR_REGISTRY/$APP_REPO_NAME:latest"'
+                sh 'docker push "$ECR_REGISTRY/$APP_REPO:latest"'
             }
         }
 
@@ -181,7 +181,7 @@ pipeline{
                 sh "docker-compose up -d"
             }
         }
-        
+
         stage('Build Docker Result Image') {
 			steps {
 				sh 'docker build -t phonebook:latest ${GIT_URL}#:result'
