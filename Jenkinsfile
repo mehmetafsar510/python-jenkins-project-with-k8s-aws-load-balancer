@@ -326,7 +326,7 @@ pipeline{
             steps{
                 withAWS(credentials: 'mycredentials', region: 'us-east-1') {
                     sh "sed -i 's|{{REGISTRY}}|$APP_REPO_NAME/phonebook-update|g' kubernetes/update-deployment.yaml"
-                    sh "sed -i 's|{{REGISTRY}}|$APP_REPO_NAME/phonebook-result|g' result/result-deployment.yaml"
+                    sh "sed -i 's|{{REGISTRY}}|$APP_REPO_NAME/phonebook-result|g' result/result-deployment.yml"
                     sh '''
                         NameSpaces=$(kubectl get namespaces | grep -i $NM_SP) || true
                         if [ "$NameSpaces" == '' ]
