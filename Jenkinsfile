@@ -341,6 +341,7 @@ pipeline{
                     sh "kubectl apply --namespace $NM_SP -f  kubernetes"
                     sh "kubectl apply --namespace $NM_SP -f  result"
                     sh "kubectl apply --namespace $NM_SP -f  auto-scaling"
+                    sh "kubectl apply -f  components.yaml"
                     sh "curl -o iam_policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.2.0/docs/install/iam_policy.json"
                     sh """
                     aws iam create-policy \
