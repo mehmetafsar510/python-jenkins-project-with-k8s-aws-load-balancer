@@ -10,7 +10,7 @@ spec:
     storage: 20Gi
   storageClassName: manual
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   hostPath:
     path: "/mnt/data"

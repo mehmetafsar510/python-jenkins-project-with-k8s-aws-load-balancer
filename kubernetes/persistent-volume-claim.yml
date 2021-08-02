@@ -5,9 +5,9 @@ metadata:
   namespace: {{ns}}
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
-      storage: 20Gi
+      storage: 500Mi
   volumeName: mysql-pv
   storageClassName: manual
