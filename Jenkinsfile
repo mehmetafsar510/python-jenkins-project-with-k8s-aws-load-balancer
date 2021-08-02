@@ -34,7 +34,6 @@ pipeline{
                   sudo mv /tmp/eksctl /usr/local/bin
                   ./get_helm.sh
                   sudo yum install jq -y
-                  helm uninstall aws-load-balancer-controller -n kube-system
                 """
               }
             }
@@ -339,6 +338,8 @@ pipeline{
                         fi
                     '''
                     sh "sed -i 's|{{ns}}|$NM_SP|g' kubernetes/servers-configmap.yaml"
+                    sh "sed -i 's|{{ns}}|$NM_SP|g' kubernetes/persistent-volume.yml"
+                    sh "sed -i 's|{{ns}}|$NM_SP|g' kubernetes/persistent-volume-claim.yml"
                     sh "kubectl apply --namespace $NM_SP -f  result"
                     sh "kubectl apply --namespace $NM_SP -f  kubernetes"
                     sh "kubectl apply --namespace $NM_SP -f  auto-scaling"
@@ -481,6 +482,12 @@ pipeline{
             withAWS(credentials: 'mycredentials', region: 'us-east-1') {
                 sh "rm -rf '${WORKSPACE}/.env'"
                 sh "helm uninstall aws-load-balancer-controller -n kube-system"
+                sh "kubectl delete namespace $NM_SP"
+                sh '''
+                kubectl get namespace "$NM_SP-namespace" -o json \
+                | tr -d "\n" | sed "s/\"finalizers\": \[[^]]\+\]/\"finalizers\": []/" \
+                | kubectl replace --raw /api/v1/namespaces/$NM_SP-namespace/finalize -f -
+                '''
                 sh """
                 aws ec2 detach-volume \
                   --volume-id ${EBS_VOLUME_ID} \

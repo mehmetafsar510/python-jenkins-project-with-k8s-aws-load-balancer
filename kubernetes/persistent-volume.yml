@@ -4,7 +4,7 @@ metadata:
   name: mysql-pv
   labels:
     type: local
-  namespace: phonebook
+  namespace: {{ns}}
 spec:
   capacity:
     storage: 20Gi
