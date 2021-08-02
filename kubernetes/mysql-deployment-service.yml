@@ -37,6 +37,8 @@ spec:
                 name: mysql-configmap
           image: "mysql:5.7"
           name: mysql
+          args:
+          - "--ignore-db-dir=lost+found"
           imagePullPolicy: Always
           ports: 
             - 
