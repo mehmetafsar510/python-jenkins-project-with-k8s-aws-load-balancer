@@ -34,6 +34,7 @@ pipeline{
                   sudo mv /tmp/eksctl /usr/local/bin
                   ./get_helm.sh
                   sudo yum install jq -y
+                  helm uninstall aws-load-balancer-controller -n kube-system
                 """
               }
             }
