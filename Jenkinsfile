@@ -478,6 +478,7 @@ pipeline{
         }
         failure {
             sh "rm -rf '${WORKSPACE}/.env'"
+            sh "helm uninstall aws-load-balancer-controller -n kube-system"
             sh """
             aws ec2 detach-volume \
               --volume-id ${EBS_VOLUME_ID} \
