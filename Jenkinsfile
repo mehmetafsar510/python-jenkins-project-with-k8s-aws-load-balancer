@@ -338,8 +338,6 @@ pipeline{
                         fi
                     '''
                     sh "sed -i 's|{{ns}}|$NM_SP|g' kubernetes/servers-configmap.yaml"
-                    sh "sed -i 's|{{ns}}|$NM_SP|g' kubernetes/persistent-volume.yml"
-                    sh "sed -i 's|{{ns}}|$NM_SP|g' kubernetes/persistent-volume-claim.yml"
                     sh "kubectl apply --namespace $NM_SP -f  result"
                     sh "kubectl apply --namespace $NM_SP -f  kubernetes"
                     sh "kubectl apply --namespace $NM_SP -f  auto-scaling"
