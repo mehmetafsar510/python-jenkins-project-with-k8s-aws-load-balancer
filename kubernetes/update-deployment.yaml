@@ -28,7 +28,7 @@ spec:
             - 
               configMapRef: 
                 name: servers-configmap
-          image: mehmetafsar510/phonebook-update
+          image: {{REGISTRY}}
           name: update
           ports: 
             - 
