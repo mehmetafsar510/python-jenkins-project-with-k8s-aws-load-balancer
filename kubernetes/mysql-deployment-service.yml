@@ -52,7 +52,7 @@ spec:
         - 
           name: mysql-pv
           persistentVolumeClaim: 
-            claimName: mysql-data-disk
+            claimName: clarus-pv-claim
 --- 
 apiVersion: v1
 kind: Service
