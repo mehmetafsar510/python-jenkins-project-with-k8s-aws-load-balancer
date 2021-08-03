@@ -481,7 +481,6 @@ pipeline{
         failure {
             withAWS(credentials: 'mycredentials', region: 'us-east-1') {
                 sh "rm -rf '${WORKSPACE}/.env'"
-                sh "helm uninstall aws-load-balancer-controller -n kube-system"
                 sh """
                 aws ec2 detach-volume \
                   --volume-id ${EBS_VOLUME_ID} \
