@@ -386,7 +386,8 @@ pipeline{
 
                     sleep(10)
                     sh "kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml"
-                    sleep(10)
+                    sleep(30)
+                    
                 }                  
             }
         }
