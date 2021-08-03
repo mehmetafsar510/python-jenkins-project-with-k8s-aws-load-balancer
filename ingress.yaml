@@ -23,7 +23,7 @@ spec:
         backend:
             serviceName: search-flask
             servicePort: 80
-      - path: /result
+      - path: /update
         backend:
             serviceName: update
             servicePort: 80
