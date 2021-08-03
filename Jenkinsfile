@@ -33,7 +33,6 @@ pipeline{
                   sudo mv ./kubectl /usr/local/bin
                   sudo mv /tmp/eksctl /usr/local/bin
                   ./get_helm.sh
-                  sudo yum install jq -y
                 """
               }
             }
@@ -456,8 +455,8 @@ pipeline{
                     script {
                         env.SSL_CERT_ARN = sh(script:'aws acm list-certificates --query CertificateSummaryList[].[CertificateArn,DomainName]   --output text | grep $FQDN | cut -f1', returnStdout:true).trim()
                         env.SSL_CERT_JSON = sh(script:"aws acm describe-certificate --certificate-arn $SSL_CERT_ARN --query Certificate.DomainValidationOptions --output text", returnStdout:true).trim()
-                        env.SSL_CERT_NAME = sh(script:'echo $SSL_CERT_JSON | tail -n 1 | cut  -f2', returnStdout:true).trim()
-                        env.SSL_CERT_VALUE = sh(script:'echo $SSL_CERT_JSON | tail -n 1 | cut  -f4', returnStdout:true).trim()   
+                        env.SSL_CERT_NAME = sh(script:'echo $SSL_CERT_JSON | tail -n 1 | cut -f2', returnStdout:true).trim()
+                        env.SSL_CERT_VALUE = sh(script:'echo $SSL_CERT_JSON | tail -n 1 | cut -f4', returnStdout:true).trim()   
                     }
 
                     sh "sed -i 's|{{SSL_CERT_NAME}}|$SSL_CERT_NAME|g' certificate.json"
