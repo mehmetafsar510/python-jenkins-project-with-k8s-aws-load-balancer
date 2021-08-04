@@ -483,6 +483,21 @@ pipeline{
                 }                  
             }
         }
+        stage('Prometheus-Grafana'){
+            agent any
+            steps{
+                withAWS(credentials: 'mycredentials', region: 'us-east-1') {
+
+                    sh "kubectl apply --namespace $NM_SP -f prometheus"
+                    sh "helm repo add grafana https://grafana.github.io/helm-charts"
+                    sh "helm repo update"
+                    sh """
+                      helm install my-release grafana/grafana \
+                      --namespace $NM_SP 
+                    """      
+                }                  
+            }
+        }
     
     }
     post {
