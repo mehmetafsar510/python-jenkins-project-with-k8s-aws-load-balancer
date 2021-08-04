@@ -498,7 +498,6 @@ pipeline{
                 aws ec2 detach-volume \
                   --volume-id ${EBS_VOLUME_ID} \
                 """
-                sh "helm uninstall aws-load-balancer-controller -n kube-system"
                 sh """
                 aws ecr delete-repository \
                   --repository-name ${APP_REPO_NAME} \
