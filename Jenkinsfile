@@ -497,7 +497,9 @@ pipeline{
                         else
                             kubectl delete namespace prometheus
                             kubectl create namespace prometheus
-                       
+                            
+                            fi
+                    '''
                     sh "kubectl apply --namespace prometheus -f prometheus"
                     sh "helm repo add grafana https://grafana.github.io/helm-charts"
                     sh "helm repo update"
