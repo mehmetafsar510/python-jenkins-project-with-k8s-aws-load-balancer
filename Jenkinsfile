@@ -386,7 +386,7 @@ pipeline{
                     sleep(10)
                     sh '''
                         KubeApply=$(kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml | grep -i "vingress.elbv2.k8s.aws") || true
-                        if [ "$KubeApply" != 'vingress.elbv2.k8s.aws' ]
+                        if [ "$KubeApply" == 'vingress.elbv2.k8s.aws' ]
                         then
                             helm uninstall aws-load-balancer-controller -n kube-system
                             helm upgrade -i aws-load-balancer-controller eks/aws-load-balancer-controller \
