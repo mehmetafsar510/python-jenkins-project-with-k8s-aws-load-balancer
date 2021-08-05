@@ -32,6 +32,7 @@ pipeline{
                   sudo mv ./kubectl /usr/local/bin
                   sudo mv /tmp/eksctl /usr/local/bin
                   ./get_helm.sh
+                  helm uninstall aws-load-balancer-controller -n kube-system
                 """
               }
             }
