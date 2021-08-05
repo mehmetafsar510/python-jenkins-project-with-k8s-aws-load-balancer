@@ -32,6 +32,7 @@ pipeline{
                   sudo mv ./kubectl /usr/local/bin
                   sudo mv /tmp/eksctl /usr/local/bin
                   ./get_helm.sh
+                  helm uninstall aws-load-balancer-controller -n kube-system
                 """
               }
             }
@@ -382,14 +383,32 @@ pipeline{
                       --set serviceAccount.name=aws-load-balancer-controller \
                       -n kube-system
                     """
-
-                    sleep(60)
-                    sh "kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml"
-                    sleep(10)
-
                 }                  
             }
         }
+
+        stage('Test the aws-load-balancer-controller role') {
+            steps {
+                withAWS(credentials: 'mycredentials', region: 'us-east-1') {
+                    echo "Testing if the aws-load-balancer-controller role is ready or not"
+                script {
+                    while(true) {
+                        try {
+                          sh "aws cloudformation describe-stacks --stack-name eksctl-mehmet-cluster-addon-iamserviceaccount-kube-system-aws-load-balancer-controller --output text | grep -i CREATE_COMPLETE | tail -n 1 | cut -f8"
+                          echo "Successfully created  aws-load-balancer-controller role."
+                          sh "kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml"
+                          sleep(10)
+                          break
+                        }
+                        catch(Exception) {
+                          echo 'Could not get aws-load-balancer-controller role please wait'
+                          sleep(5)  
+                        } 
+                    }
+                }
+            }
+        }
+    }
 
         stage('dns-record-control'){
             agent any
