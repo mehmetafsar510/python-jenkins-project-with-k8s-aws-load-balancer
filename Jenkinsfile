@@ -384,8 +384,16 @@ pipeline{
                     """
 
                     sleep(10)
-                    sh "kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml"
-                    sleep(30)
+                    sh '''
+                        KubeApply=$(kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml | grep -i 'vingress.elbv2.k8s.aws') || true
+                        if [ "$KubeApply" == 'vingress.elbv2.k8s.aws' ]
+                        then
+                            kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml
+                        else
+                            kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml
+                        fi
+                    '''
+                    sleep(10)
 
                 }                  
             }
@@ -497,16 +505,18 @@ pipeline{
                         else
                             kubectl delete namespace prometheus
                             kubectl create namespace prometheus
-                            
+
                             fi
                     '''
                     sh "kubectl apply --namespace prometheus -f prometheus"
                     sh "helm repo add grafana https://grafana.github.io/helm-charts"
                     sh "helm repo update"
                     sh """
-                      helm install my-release grafana/grafana \
-                      --namespace prometheus 
-                    """      
+                       helm install my-release grafana/grafana \
+                         --namespace prometheus 
+                    """ 
+                    sh 'export POD_NAME=$(kubectl get pods --namespace prometheus -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=my-release" -o jsonpath="{.items[0].metadata.name}")'
+                    sh "kubectl --namespace prometheus port-forward $POD_NAME 3000"
                 }                  
             }
         }
