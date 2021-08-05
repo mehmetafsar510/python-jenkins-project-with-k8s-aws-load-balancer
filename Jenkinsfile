@@ -12,9 +12,9 @@ pipeline{
         APP_REPO_NAME = "mehmetafsar510"
         AWS_REGION = "us-east-1"
         CLUSTER_NAME = "mehmet-cluster"
-        FQDN = "clarus.mehmetafsar.com"
+        FQDN = "clarusshop.mehmetafsar.com"
         DOMAIN_NAME = "mehmetafsar.com"
-        NM_SP = "mehmet"
+        NM_SP = "phonebook"
         GIT_FOLDER = sh(script:'echo ${GIT_URL} | sed "s/.*\\///;s/.git$//"', returnStdout:true).trim()
     }
     stages{
@@ -478,7 +478,7 @@ pipeline{
                     sh "sed -i 's|{{SSL_CERT_VALUE}}|$SSL_CERT_VALUE|g' deletecertificate.json"
 
                     sh '''
-                        SSLRecordSet=$(aws route53 list-resource-record-sets   --hosted-zone-id $ZONE_ID   --query ResourceRecordSets[] | grep -i $SSL_CERT_NAME) || true
+                        SSLRecordSet=$(aws route53 list-resource-record-sets   --hosted-zone-id $ZONE_ID   --query ResourceRecordSets[] | grep -i $SSL_CERT_VALUE) || true
                         if [ "$SSLRecordSet" != '' ]
                         then
                             aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch file://deletecertificate.json
