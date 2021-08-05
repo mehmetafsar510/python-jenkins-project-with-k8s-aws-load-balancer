@@ -383,7 +383,7 @@ pipeline{
                       -n kube-system
                     """
 
-                    sleep(10)
+                    sleep(60)
                     sh '''
                         KubeApply=$(kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml | grep -i "vingress.elbv2.k8s.aws") || true
                         if [ "$KubeApply" == 'vingress.elbv2.k8s.aws' ]
@@ -397,7 +397,7 @@ pipeline{
 
                             kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml
                         else
-                            kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml
+                            
                         fi
                     '''
                     sleep(10)
