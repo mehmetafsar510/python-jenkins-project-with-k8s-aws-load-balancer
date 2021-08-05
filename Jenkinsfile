@@ -522,8 +522,7 @@ pipeline{
                        helm install my-release grafana/grafana \
                          --namespace prometheus 
                     """ 
-                    sh 'export POD_NAME=$(kubectl get pods --namespace prometheus -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=my-release" -o jsonpath="{.items[0].metadata.name}")'
-                    sh "kubectl --namespace prometheus port-forward $POD_NAME 3000"
+                    
                 }                  
             }
         }
