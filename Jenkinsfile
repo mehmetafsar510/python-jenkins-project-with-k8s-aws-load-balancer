@@ -532,9 +532,15 @@ pipeline{
                             fi
                     '''
                     sh "kubectl apply --namespace prometheus -f prometheus"
-                    sh "kubectl apply -f grafana"
-                    sh "kubectl get svc --namespace prometheus"
-                    sh "kubectl get svc "
+                    sh "helm repo add grafana https://grafana.github.io/helm-charts"
+                    sh "helm repo update"
+                    sh """
+                       helm install my-release grafana/grafana \
+                         --namespace prometheus 
+                    """
+                    sh 'export POD_NAME=$(kubectl get pods --namespace prometheus -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=my-release" -o jsonpath="{.items[0].metadata.name}")'
+                    sh "kubectl port-forward --namespace prometheus  $POD_NAME 3000:3000"
+                    sh "kubectl get svc --namespace prometheus" 
                 }                  
             }
         }
