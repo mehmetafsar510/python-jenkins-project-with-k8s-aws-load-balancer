@@ -527,13 +527,8 @@ pipeline{
                             fi
                     '''
                     sh "kubectl apply --namespace prometheus -f prometheus"
-                    sh "helm repo add grafana https://grafana.github.io/helm-charts"
-                    sh "helm repo update"
-                    sh """
-                       helm install my-release grafana/grafana \
-                         --namespace prometheus 
-                    """
-                    
+                    sh "kubectl apply -f store.yml"
+                    sh "kubectl apply --namespace prometheus -f grafana"
                     sh "kubectl get svc --namespace prometheus" 
                 }                  
             }
