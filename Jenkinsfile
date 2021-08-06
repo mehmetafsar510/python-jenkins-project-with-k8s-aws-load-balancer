@@ -527,8 +527,9 @@ pipeline{
                             fi
                     '''
                     sh "kubectl apply --namespace prometheus -f prometheus"
-                    sh "kubectl apply --namespace prometheus -f grafana"
+                    sh "kubectl apply -f grafana"
                     sh "kubectl get svc --namespace prometheus"
+                    sh "kubectl get svc "
                 }                  
             }
         }
