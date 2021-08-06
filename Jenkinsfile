@@ -382,6 +382,14 @@ pipeline{
                       --set serviceAccount.name=aws-load-balancer-controller \
                       -n kube-system
                     """
+                    sh "helm uninstall aws-load-balancer-controller -n kube-system"
+                    sh """
+                    helm upgrade -i aws-load-balancer-controller eks/aws-load-balancer-controller \
+                      --set clusterName=${CLUSTER_NAME} \
+                      --set serviceAccount.create=false \
+                      --set serviceAccount.name=aws-load-balancer-controller \
+                      -n kube-system
+                    """
                 }                  
             }
         }
@@ -519,13 +527,7 @@ pipeline{
                             fi
                     '''
                     sh "kubectl apply --namespace prometheus -f prometheus"
-                    sh "helm repo add grafana https://grafana.github.io/helm-charts"
-                    sh "helm repo update"
-                    sh """
-                       helm install my-release grafana/grafana \
-                         --namespace prometheus 
-                    """ 
-                    
+                    sh "kubectl apply --namespace prometheus -f grafana"
                 }                  
             }
         }
