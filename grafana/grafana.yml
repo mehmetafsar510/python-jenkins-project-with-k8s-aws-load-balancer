@@ -1,16 +1,32 @@
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: PersistentVolume
 metadata:
-  name: grafana-storage-pvc
+  name: pv-grafana
   labels:
-    vol: grafana-storage
+    type: local
 spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/sda1/data/grafana"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: 
+  name: grafana-pvc
+  labels:
+    name: grafana
+spec:    
+  storageClassName: manual
+  accessModes:
+  - ReadWriteOnce
   resources:
-    requests:
-      storage: 10Gi
+    requests:   
+      storage: 1Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -67,7 +83,7 @@ spec:
       volumes:
         - name: grafana-pv
           persistentVolumeClaim:
-            claimName: grafana-storage-pvc
+            claimName: grafana-pvc
 ---
 apiVersion: v1
 kind: Service
