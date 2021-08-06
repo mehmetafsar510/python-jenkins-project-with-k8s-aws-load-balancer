@@ -12,9 +12,9 @@ pipeline{
         APP_REPO_NAME = "mehmetafsar510"
         AWS_REGION = "us-east-1"
         CLUSTER_NAME = "mehmet-cluster"
-        FQDN = "clarusshop.mehmetafsar.com"
+        FQDN = "clarus.mehmetafsar.com"
         DOMAIN_NAME = "mehmetafsar.com"
-        NM_SP = "phonebook"
+        NM_SP = "mehmet"
         GIT_FOLDER = sh(script:'echo ${GIT_URL} | sed "s/.*\\///;s/.git$//"', returnStdout:true).trim()
     }
     stages{
@@ -404,7 +404,7 @@ pipeline{
                           sh "aws cloudformation describe-stacks --stack-name eksctl-mehmet-cluster-addon-iamserviceaccount-kube-system-aws-load-balancer-controller --output text | grep -i CREATE_COMPLETE | tail -n 1 | cut -f8"
                           echo "Successfully created  aws-load-balancer-controller role."
                           sh "kubectl apply --validate=false --namespace $NM_SP -f ingress.yaml"
-                          sleep(10)
+                          sleep(15)
                           break
                         }
                         catch(Exception) {
