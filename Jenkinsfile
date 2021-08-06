@@ -32,11 +32,6 @@ pipeline{
                   sudo mv ./kubectl /usr/local/bin
                   sudo mv /tmp/eksctl /usr/local/bin
                   ./get_helm.sh
-                  sudo wget https://dl.grafana.com/oss/release/grafana-8.1.0-1.x86_64.rpm
-                  sudo yum install grafana-8.1.0-1.x86_64.rpm -y
-                  sudo systemctl daemon-reload
-                  sudo systemctl start grafana-server
-                  sudo systemctl enable grafana-server
                 """
               }
             }

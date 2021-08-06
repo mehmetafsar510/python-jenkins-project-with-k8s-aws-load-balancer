@@ -1,32 +1,26 @@
 ---
-apiVersion: v1
-kind: PersistentVolume
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
 metadata:
-  name: pv-grafana
-  labels:
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 2Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/mnt/sda1/data/grafana"
+  name: aws
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+  fsType: ext4
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: 
-  name: grafana-pvc
-  labels:
-    name: grafana
-spec:    
-  storageClassName: manual
+metadata:
+  name: clar-pv-claim
+spec:
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
-    requests:   
+    requests:
       storage: 1Gi
+  storageClassName: aws
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -83,7 +77,7 @@ spec:
       volumes:
         - name: grafana-pv
           persistentVolumeClaim:
-            claimName: grafana-pvc
+            claimName: clar-pv-claim
 ---
 apiVersion: v1
 kind: Service
