@@ -12,9 +12,9 @@ pipeline{
         APP_REPO_NAME = "mehmetafsar510"
         AWS_REGION = "us-east-1"
         CLUSTER_NAME = "mehmet-cluster"
-        FQDN = "clarus.mehmetafsar.com"
+        FQDN = "clarusshop.mehmetafsar.com"
         DOMAIN_NAME = "mehmetafsar.com"
-        NM_SP = "esma"
+        NM_SP = "phone"
         GIT_FOLDER = sh(script:'echo ${GIT_URL} | sed "s/.*\\///;s/.git$//"', returnStdout:true).trim()
     }
     stages{
@@ -446,10 +446,10 @@ pipeline{
             steps{
                 withAWS(credentials: 'mycredentials', region: 'us-east-1') {
                     script {
-                        env.ELB_DNS = sh(script:"aws elbv2 describe-load-balancers --query LoadBalancers[].DNSName | grep -i $NM_SP | cut -d'-' -f2-", returnStdout:true).trim()
+                        env.ELB_DNS = sh(script:"aws elbv2 describe-load-balancers --query LoadBalancers[].DNSName | grep -i $NM_SP | cut -d \" -f 2", returnStdout:true).trim()
                         env.ZONE_ID = sh(script:"aws route53 list-hosted-zones-by-name --dns-name $DOMAIN_NAME --query HostedZones[].Id --output text | cut -d/ -f3", returnStdout:true).trim()   
                     }
-                    sh "sed -i 's|{{DNS}}|dualstack.k8-$ELB_DNS|g' dnsrecord.json"
+                    sh "sed -i 's|{{DNS}}|dualstack.$ELB_DNS|g' dnsrecord.json"
                     sh "sed -i 's|{{FQDN}}|$FQDN|g' dnsrecord.json"
                     sh "aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch file://dnsrecord.json"
                     
