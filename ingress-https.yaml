@@ -27,19 +27,7 @@ spec:
           - path: /* # SSL Redirect Setting
             backend:
                 serviceName: ssl-redirect
-                servicePort: use-annotation         
-          - path: /update
-            backend:
-                serviceName: update
-                servicePort: 80
-          - path: /delete
-            backend:
-                serviceName: update
-                servicePort: 80
-          - path: /add
-            backend:
-                serviceName: update
-                servicePort: 80
+                servicePort: use-annotation
           - path: /choose
             backend:
                 serviceName: update
