@@ -6,14 +6,15 @@ pipeline{
         MYSQL_DATABASE_DB = "phonebook"
         MYSQL_DATABASE_PORT = 3306
         PATH="/usr/local/bin/:${env.PATH}"
-        ECR_REGISTRY = "646075469151.dkr.ecr.us-east-1.amazonaws.com"
+        ECR_REGISTRY = "717860527362.dkr.ecr.us-east-1.amazonaws.com"
         APP_REPO = "phonebook/app"
         AWS_ACCOUNT_ID=sh(script:'export PATH="$PATH:/usr/local/bin" && aws sts get-caller-identity --query Account --output text', returnStdout:true).trim()
         APP_REPO_NAME = "mehmetafsar510"
         AWS_REGION = "us-east-1"
+        CFN_KEYPAIR="doctor"
         CLUSTER_NAME = "mehmet-cluster"
-        FQDN = "clarusshop.mehmetafsar.com"
-        DOMAIN_NAME = "mehmetafsar.com"
+        FQDN = "clarusshop.mehmetafsar.net"
+        DOMAIN_NAME = "mehmetafsar.net"
         NM_SP = "mehmet"
         GIT_FOLDER = sh(script:'echo ${GIT_URL} | sed "s/.*\\///;s/.git$//"', returnStdout:true).trim()
     }
