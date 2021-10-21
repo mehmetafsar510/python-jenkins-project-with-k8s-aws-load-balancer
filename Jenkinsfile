@@ -15,7 +15,7 @@ pipeline{
         CLUSTER_NAME = "mehmet-cluster"
         FQDN = "clarusshop.mehmetafsar.net"
         DOMAIN_NAME = "mehmetafsar.net"
-        NM_SP = "phonebook"
+        NM_SP = "phoneboo"
         GIT_FOLDER = sh(script:'echo ${GIT_URL} | sed "s/.*\\///;s/.git$//"', returnStdout:true).trim()
     }
     stages{
